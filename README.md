@@ -33,42 +33,10 @@ Fish shell plugin for launching AI coding assistants (Goose, GitHub Copilot) in 
 
 ## Installation
 
-### Option 1: Fisher (Recommended)
+Install with Fisher:
 
 ```fish
 fisher install kheaactua/fish-ai-containers
-```
-
-### Option 2: Manual Installation
-
-```fish
-# Clone the repository
-git clone https://github.com/kheaactua/fish-ai-containers.git ~/fish-ai-containers
-
-# Symlink the files (updates automatically when you git pull)
-ln -s ~/fish-ai-containers/conf.d/container-launcher.fish \
-      ~/.config/fish/conf.d/container-launcher.fish
-ln -s ~/fish-ai-containers/functions/goose-container.fish \
-      ~/.config/fish/functions/goose-container.fish
-ln -s ~/fish-ai-containers/functions/copilot-container.fish \
-      ~/.config/fish/functions/copilot-container.fish
-
-# Reload fish
-exec fish
-```
-
-### Option 3: Direct Copy
-
-```fish
-# Copy files to your fish config
-mkdir -p ~/.config/fish/{conf.d,functions}
-cp ~/fish-ai-containers/conf.d/container-launcher.fish \
-   ~/.config/fish/conf.d/
-cp ~/fish-ai-containers/functions/*.fish \
-   ~/.config/fish/functions/
-
-# Reload fish
-exec fish
 ```
 
 ## Usage
@@ -340,9 +308,64 @@ env | grep -i api      # Check API keys
 - [Goose](https://github.com/block/goose) - AI coding agent
 - [Fisher](https://github.com/jorgebucaran/fisher) - Fish plugin manager
 
+## Development
+
+### Pre-commit Hooks
+
+This repository uses pre-commit hooks for code quality:
+
+```bash
+# Install pre-commit
+pip install pre-commit
+
+# Install hooks
+pre-commit install
+
+# Run manually on all files
+pre-commit run --all-files
+```
+
+**Hooks enabled:**
+- **fish syntax-check** - Fish shell syntax validation
+- **markdownlint** - Markdown formatting
+- **gitleaks** - Secret scanning
+- **detect-secrets** - Additional secret detection
+
+### Updating Secrets Baseline
+
+If you intentionally add content that looks like a secret (example tokens, test data):
+
+```bash
+detect-secrets scan > .secrets.baseline
+git add .secrets.baseline
+```
+
+### Testing Changes
+
+Since Fish doesn't have great unit testing, manually test:
+
+```fish
+# Install locally
+fisher install ~/fish-ai-containers
+
+# Test basic functionality
+goose-container bash
+copilot-container --version
+
+# Test with verbose mode
+set -x CONTAINER_VERBOSE 1
+goose-container bash
+```
+
 ## Contributing
 
 Contributions welcome! Please open issues or PRs on [GitHub](https://github.com/kheaactua/fish-ai-containers).
+
+**Before submitting:**
+- Ensure pre-commit hooks pass
+- Test all user-facing functions
+- Update documentation
+- Follow Fish shell idioms
 
 ## License
 

@@ -3,14 +3,17 @@
 
 repos:
   # Fish shell syntax checking
-  - repo: https://github.com/fish-shop/syntax-check
-    rev: v1.5.2
+  - repo: local
     hooks:
-      - id: syntax-check
+      - id: fish-syntax-check
+        name: Fish syntax check
+        entry: fish --no-execute
+        language: system
+        files: \.fish$
 
   # General file hygiene
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v6.0.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
@@ -23,11 +26,11 @@ repos:
         args: ['--fix=lf']
 
   # Markdown linting
-  - repo: https://github.com/markdownlint/markdownlint
-    rev: v0.12.0
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.39.0
     hooks:
       - id: markdownlint
-        args: ['--rules', '~MD013,~MD033,~MD041']
+        args: ['--disable', 'MD013', 'MD033', 'MD041']
         # MD013: line length (too strict)
         # MD033: inline HTML (we use it intentionally)
         # MD041: first line heading (not always needed)
@@ -40,7 +43,7 @@ repos:
 
   # Secret detection
   - repo: https://github.com/Yelp/detect-secrets
-    rev: v1.4.0
+    rev: v1.5.0
     hooks:
       - id: detect-secrets
         args: ['--baseline', '.secrets.baseline']

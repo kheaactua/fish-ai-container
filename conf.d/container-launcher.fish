@@ -346,4 +346,3 @@ end
 # Examples:
 # __container_launcher "ai-ubuntu:latest" "goose" session --profile dev
 # __container_launcher "ai-ubuntu:latest" "copilot" "explain this code"
-

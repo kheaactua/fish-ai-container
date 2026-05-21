@@ -82,10 +82,10 @@ function newtool-container --description "Run newtool in container"
     # 1. Set tool-specific environment variables
     set -x NEWTOOL_CONFIG "$HOME/.config/newtool"
     set -x NEWTOOL_API_KEY "$NEWTOOL_API_KEY"
-    
+
     # 2. Launch via generic launcher
     __container_launcher "ai-ubuntu:latest" "newtool" $argv
-    
+
     # 3. Clean up environment
     set -e NEWTOOL_CONFIG
     set -e NEWTOOL_API_KEY
@@ -116,7 +116,7 @@ The `__container_launcher` function flow:
 ```
 1. __container_print_verbose       # Debug logging
 2. __container_mount_files          # Conditional file mounts
-3. __container_mount_directories    # Conditional directory mounts  
+3. __container_mount_directories    # Conditional directory mounts
 4. __container_mount_workdir        # Git-aware workspace mounting
 5. container-work-mounts (hook)     # User-provided mounts
 6. container-work-env-vars (hook)   # User-provided env vars
@@ -147,14 +147,14 @@ function __container_mount_files
     for spec in $argv
         set -l parts (string split ":" -- $spec)
         set -l host_path $parts[1]
-        
+
         if test -f $host_path  # Check file exists
             set -a mounts "-v" "$spec"
         else
             __container_print_verbose "Skipping mount (not found): $host_path"
         end
     end
-    
+
     echo $mounts  # Return via stdout
 end
 ```
@@ -278,7 +278,7 @@ goose-container bash
 # Should detect git root and mount it as /workspace
 
 cd ~/git-repo/deep/nested/dir
-goose-container bash  
+goose-container bash
 # Should still mount git root, not just nested dir
 ```
 
