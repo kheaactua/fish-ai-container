@@ -1,0 +1,49 @@
+# Pre-commit hooks for fish-ai-containers
+# Install: pip install pre-commit && pre-commit install
+
+repos:
+  # Fish shell syntax checking
+  - repo: local
+    hooks:
+      - id: fish-syntax-check
+        name: Fish syntax check
+        entry: fish --no-execute
+        language: system
+        files: \.fish$
+
+  # General file hygiene
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+        args: ['--maxkb=500']
+      - id: check-merge-conflict
+      - id: check-executables-have-shebangs
+      - id: mixed-line-ending
+        args: ['--fix=lf']
+
+  # Markdown linting
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.39.0
+    hooks:
+      - id: markdownlint
+        args: ['--disable', 'MD013', 'MD033', 'MD041']
+        # MD013: line length (too strict)
+        # MD033: inline HTML (we use it intentionally)
+        # MD041: first line heading (not always needed)
+
+  # Security checks
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.2
+    hooks:
+      - id: gitleaks
+
+  # Secret detection
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']
