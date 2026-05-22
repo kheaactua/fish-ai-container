@@ -1,4 +1,4 @@
-# Pre-commit hooks for fish-ai-containers
+# Pre-commit hooks for fish-ai-container
 # Install: pip install pre-commit && pre-commit install
 
 repos:
