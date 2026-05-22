@@ -36,7 +36,7 @@ Fish shell plugin for launching AI coding assistants (Goose, GitHub Copilot) in 
 Install with Fisher:
 
 ```fish
-fisher install kheaactua/fish-ai-containers
+fisher install kheaactua/fish-ai-container
 ```
 
 ## Usage
@@ -346,7 +346,7 @@ Since Fish doesn't have great unit testing, manually test:
 
 ```fish
 # Install locally
-fisher install ~/fish-ai-containers
+fisher install ~/fish-ai-container
 
 # Test basic functionality
 goose-container bash
@@ -359,7 +359,7 @@ goose-container bash
 
 ## Contributing
 
-Contributions welcome! Please open issues or PRs on [GitHub](https://github.com/kheaactua/fish-ai-containers).
+Contributions welcome! Please open issues or PRs on [GitHub](https://github.com/kheaactua/fish-ai-container).
 
 **Before submitting:**
 - Ensure pre-commit hooks pass

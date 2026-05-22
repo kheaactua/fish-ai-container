@@ -26,9 +26,8 @@ This Fish shell plugin provides commands for launching AI coding assistants (Goo
 ## Code Structure
 
 ```
-fish-ai-containers/
+fish-ai-container/
 ├── README.md                           # User documentation
-├── INSTALL.md                          # Installation guide
 ├── LICENSE                             # MIT license
 ├── fisher_plugin                       # Fisher plugin manifest
 ├── .github/
@@ -235,7 +234,7 @@ Fish doesn't have a great unit test framework. Test manually:
 #### 1. Function Loading Test
 ```fish
 # Install plugin
-fisher install ~/fish-ai-containers
+fisher install ~/fish-ai-container
 
 # Check functions loaded
 functions | grep container

@@ -9,7 +9,6 @@ function goose-container --description "Run goose in container to isolate sessio
     end
 
     __container_launcher "ai-ubuntu:latest" "goose" $argv
-    # __container_launcher "ai-ubuntu:latest" bash
 
     # Clean up exported variables
     set -e GOOSE_DISABLE_KEYRING
