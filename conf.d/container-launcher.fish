@@ -233,6 +233,7 @@ function __container_launcher --description "Generic container launcher with com
     # Tool config directories (persistent sessions, preferences) - always mount
     set -a cmd -v $HOME/.config/goose:$CONTAINER_HOME/.config/goose
     set -a cmd -v $HOME/.config/github-copilot:$CONTAINER_HOME/.config/github-copilot
+    set -a cmd -v $HOME/.config/hermes:$CONTAINER_HOME/.config/hermes
     set -a cmd -v $HOME/.copilot:$CONTAINER_HOME/.copilot
 
     # Define conditional file mounts (format: host_path:container_path:options)
