@@ -8,7 +8,7 @@ function goose-container --description "Run goose in container to isolate sessio
         set -x GOOSE_MOIM_MESSAGE_TEXT "$GOOSE_MOIM_MESSAGE_TEXT"
     end
 
-    __container_launcher "ai-ubuntu:latest" "goose" $argv
+    __container_launcher "ai-goose:latest" "goose" $argv
 
     # Clean up exported variables
     set -e GOOSE_DISABLE_KEYRING
