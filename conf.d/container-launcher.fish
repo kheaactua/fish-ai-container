@@ -141,9 +141,34 @@ end
 
 function __container_launcher --description "Generic container launcher with common mounts and env vars"
     # Parse arguments
+    # Usage: __container_launcher IMAGE TOOL_CMD [--agent-mounts mount1 mount2 ...] [-- remaining_args]
     set -l IMAGE $argv[1]
     set -l TOOL_CMD $argv[2]
-    set -l remaining_args $argv[3..-1]
+    set -l agent_mounts
+    set -l remaining_args
+
+    # Parse optional --agent-mounts flag
+    set -l i 3
+    while test $i -le (count $argv)
+        if test "$argv[$i]" = "--agent-mounts"
+            # Collect mounts until we hit -- or end of args
+            set i (math $i + 1)
+            while test $i -le (count $argv); and test "$argv[$i]" != "--"
+                set -a agent_mounts "$argv[$i]"
+                set i (math $i + 1)
+            end
+        else if test "$argv[$i]" = "--"
+            # Everything after -- is remaining args
+            set i (math $i + 1)
+            set remaining_args $argv[$i..-1]
+            break
+        else
+            # No separator, treat rest as remaining args
+            set remaining_args $argv[$i..-1]
+            break
+        end
+        set i (math $i + 1)
+    end
 
     # Validate required arguments
     if test -z "$IMAGE" -o -z "$TOOL_CMD"
@@ -230,11 +255,19 @@ function __container_launcher --description "Generic container launcher with com
     set -a cmd -v $CONTAINER_TMPDIR:$CONTAINER_TMPDIR
     __container_print_verbose "  📁 Mounting tmpdir: $CONTAINER_TMPDIR"
 
-    # Tool config directories (persistent sessions, preferences) - always mount
-    set -a cmd -v $HOME/.config/goose:$CONTAINER_HOME/.config/goose
-    set -a cmd -v $HOME/.config/github-copilot:$CONTAINER_HOME/.config/github-copilot
-    set -a cmd -v $HOME/.hermes:$CONTAINER_HOME/.hermes
-    set -a cmd -v $HOME/.copilot:$CONTAINER_HOME/.copilot
+    # Agent-specific mounts (passed via --agent-mounts)
+    # Auto-create missing host paths to prevent container from creating them as root
+    # Note: Agent functions should create their paths with correct types before calling launcher.
+    # This is just a safety net that defaults to directory creation.
+    for mount in $agent_mounts
+        set -l host_path (string split -m 1 ":" $mount)[1]
+        if not test -e $host_path
+            mkdir -p $host_path
+            __container_print_verbose "  📁 Created agent mount dir: $host_path"
+        end
+        set -a cmd -v $mount
+        __container_print_verbose "  📁 Agent mount: $mount"
+    end
 
     # Define conditional file mounts (format: host_path:container_path:options)
     set -l file_mounts \
