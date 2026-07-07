@@ -8,7 +8,13 @@ function goose-container --description "Run goose in container to isolate sessio
         set -x GOOSE_MOIM_MESSAGE_TEXT "$GOOSE_MOIM_MESSAGE_TEXT"
     end
 
-    __container_launcher "ai-goose:latest" "goose" $argv
+    set -l CONTAINER_HOME "/home/"(whoami)
+
+    # Define Goose-specific mounts
+    set -l goose_mounts \
+        $HOME/.config/goose:$CONTAINER_HOME/.config/goose
+
+    __container_launcher "ai-goose:latest" "goose" --agent-mounts $goose_mounts -- $argv
 
     # Clean up exported variables
     set -e GOOSE_DISABLE_KEYRING
