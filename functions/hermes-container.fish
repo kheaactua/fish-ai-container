@@ -4,7 +4,8 @@ function hermes-container --description "Run Hermes AI agent in container"
     # But we want to persist user data (sessions, logs, skills, configs) on the host
     # Solution: Mount individual data subdirectories, leaving hermes-agent/ in container
 
-    set -l CONTAINER_HOME "/home/"(whoami)
+    # Container ships a fixed `developer` user (UID/GID 1000) regardless of host username
+    set -l CONTAINER_HOME "/home/developer"
     set -l HERMES_HOME "$HOME/.hermes"
 
     # Initialize Hermes data directory structure

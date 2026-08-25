@@ -8,7 +8,8 @@ function goose-container --description "Run goose in container to isolate sessio
         set -x GOOSE_MOIM_MESSAGE_TEXT "$GOOSE_MOIM_MESSAGE_TEXT"
     end
 
-    set -l CONTAINER_HOME "/home/"(whoami)
+    # Container ships a fixed `developer` user (UID/GID 1000) regardless of host username
+    set -l CONTAINER_HOME "/home/developer"
 
     # Define Goose-specific mounts
     set -l goose_mounts \
