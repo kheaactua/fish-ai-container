@@ -177,7 +177,13 @@ function __container_launcher --description "Generic container launcher with com
     end
 
     # Configuration
-    set -l CONTAINER_USER "$(whoami)"
+    #
+    # Images now ship a FIXED container user `developer` at UID/GID 1000
+    # (see containerized-ai-tools/docker/base/Dockerfile), regardless of your
+    # host username or UID. We map your host UID/GID onto that fixed identity
+    # at runtime with --userns=keep-id:uid=...,gid=..., so bind-mounted files
+    # end up owned by you on the host no matter which machine you're on.
+    set -l CONTAINER_USER "developer"
     set -l CONTAINER_HOME "/home/$CONTAINER_USER"
     set -l WORK_DIR (pwd)  # Use current working directory
 
@@ -194,8 +200,9 @@ function __container_launcher --description "Generic container launcher with com
     mkdir -p $CONTAINER_TMPDIR  # Create on host before mounting
     __container_print_verbose "  📁 Created container tmpdir: $CONTAINER_TMPDIR"
 
-    # Keep user ID mapping for proper file permissions
-    set -a cmd --userns=keep-id
+    # Map your (possibly different, per-machine) host UID/GID onto the
+    # container's fixed developer:1000 identity.
+    set -a cmd --userns=keep-id:uid=(id -u),gid=(id -g)
 
     # User
     set -a cmd --user $CONTAINER_USER
