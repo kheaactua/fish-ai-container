@@ -184,6 +184,8 @@ function __container_launcher --description "Generic container launcher with com
     # at runtime with --userns=keep-id:uid=...,gid=..., so bind-mounted files
     # end up owned by you on the host no matter which machine you're on.
     set -l CONTAINER_USER "developer"
+    set -l CONTAINER_UID 1000
+    set -l CONTAINER_GID 1000
     set -l CONTAINER_HOME "/home/$CONTAINER_USER"
     set -l WORK_DIR (pwd)  # Use current working directory
 
@@ -200,9 +202,11 @@ function __container_launcher --description "Generic container launcher with com
     mkdir -p $CONTAINER_TMPDIR  # Create on host before mounting
     __container_print_verbose "  📁 Created container tmpdir: $CONTAINER_TMPDIR"
 
-    # Map your (possibly different, per-machine) host UID/GID onto the
-    # container's fixed developer:1000 identity.
-    set -a cmd --userns=keep-id:uid=(id -u),gid=(id -g)
+    # Map your host UID/GID onto the container's fixed developer:1000 identity.
+    # NOTE: uid=/gid= here are the TARGET ids *inside* the container (developer's
+    # fixed UID/GID), not your host UID/GID — keep-id remaps whatever your real
+    # host UID/GID is onto these fixed values automatically.
+    set -a cmd --userns=keep-id:uid=$CONTAINER_UID,gid=$CONTAINER_GID
 
     # User
     set -a cmd --user $CONTAINER_USER
