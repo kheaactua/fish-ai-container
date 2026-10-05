@@ -41,10 +41,11 @@ function __container_mount_directories --description "Mount directories and file
     for mount in $dir_mounts
         set -l parts (string split : $mount)
         set -l host_path $parts[1]
+        set -l container_path $parts[2]
         if test -e $host_path
             echo "-v"
             echo $mount
-            echo "EXPLICIT_MOUNT:$host_path"
+            echo "EXPLICIT_MOUNT:$host_path:$container_path"
             # Check if it's a file or directory for proper emoji
             if test -f $host_path
                 __container_print_verbose "  📄 Mounting file: $mount"
@@ -57,38 +58,45 @@ function __container_mount_directories --description "Mount directories and file
     end
 end
 
-function __container_mount_workdir --description "Mount working directory or git root if not already covered"
+function __container_mount_workdir --description "Mount working directory or git root if not already covered; resolves the container-side workdir"
     set -l work_dir $argv[1]
-    set -l explicit_mount_list $argv[2..-1]
+    # Remaining args are "host_path:container_path" pairs
+    set -l explicit_mount_pairs $argv[2..-1]
 
-    # Check if current working directory is already covered by any mount
-    set -l cwd_mounted false
-    for mount_path in $explicit_mount_list
-        if string match -q "$mount_path*" $work_dir
-            set cwd_mounted true
-            __container_print_verbose "  ✓ Working directory already covered by mount: $mount_path"
-            break
+    # Check if current working directory is already covered by any mount.
+    # Work-specific mounts may remap the host path to a different container
+    # location (e.g. $HOME -> $CONTAINER_HOME), so translate work_dir to its
+    # container-side equivalent instead of assuming identical paths.
+    for pair in $explicit_mount_pairs
+        set -l parts (string split -m 1 ":" $pair)
+        set -l host_path $parts[1]
+        set -l container_path $parts[2]
+        if test -n "$host_path" -a -n "$container_path"; and string match -q "$host_path*" $work_dir
+            set -l suffix (string sub -s (math (string length $host_path) + 1) $work_dir)
+            __container_print_verbose "  ✓ Working directory already covered by mount: $host_path -> $container_path"
+            echo "CONTAINER_WORKDIR:$container_path$suffix"
+            return
         end
     end
 
-    # Mount current directory (or git root) if not already covered
-    if test "$cwd_mounted" = false
-        # Check if we're in a git repository
-        set -l git_root (git rev-parse --show-toplevel 2>/dev/null)
+    # Not covered - mount current directory (or git root) directly; this uses
+    # an identical path on both sides, so the container-side workdir is the
+    # same as the host one.
+    set -l git_root (git rev-parse --show-toplevel 2>/dev/null)
 
-        if test -n "$git_root"
-            # We're in a git repo - mount the repository root instead of just cwd
-            # This ensures .git and all repo files are accessible
-            echo "-v"
-            echo "$git_root:$git_root"
-            echo "📂 Detected git repository, mounting: $git_root" 1>&2
-        else
-            # Not in a git repo - mount current directory
-            echo "-v"
-            echo "$work_dir:$work_dir"
-            __container_print_verbose "  📁 Mounting working directory: $work_dir"
-        end
+    if test -n "$git_root"
+        # We're in a git repo - mount the repository root instead of just cwd
+        # This ensures .git and all repo files are accessible
+        echo "-v"
+        echo "$git_root:$git_root"
+        echo "📂 Detected git repository, mounting: $git_root" 1>&2
+    else
+        # Not in a git repo - mount current directory
+        echo "-v"
+        echo "$work_dir:$work_dir"
+        __container_print_verbose "  📁 Mounting working directory: $work_dir"
     end
+    echo "CONTAINER_WORKDIR:$work_dir"
 end
 
 function __container_build_command --description "Build the final container command from arguments"
@@ -322,14 +330,16 @@ function __container_launcher --description "Generic container launcher with com
         end
     end
 
-    # Track explicit mounts for duplicate detection
+    # Track explicit mounts for duplicate detection (as host:container pairs,
+    # so __container_mount_workdir can translate a covered cwd to its
+    # container-side path, not just detect that it's covered)
     set -l explicit_mounts
 
     # Mount directories and track paths (uses helper function)
     for result in (__container_mount_directories $always_dir_mounts)
         if string match -q "EXPLICIT_MOUNT:*" $result
-            # set -l path (string sub -s 16 $result)
-            set -a explicit_mounts $path
+            set -l pair (string sub -s 16 $result)
+            set -a explicit_mounts $pair
         else
             set -a cmd $result
         end
@@ -337,16 +347,22 @@ function __container_launcher --description "Generic container launcher with com
 
     for result in (__container_mount_directories $conditional_dir_mounts)
         if string match -q "EXPLICIT_MOUNT:*" $result
-            set -l path (string sub -s 16 $result)
-            set -a explicit_mounts $path
+            set -l pair (string sub -s 16 $result)
+            set -a explicit_mounts $pair
         else
             set -a cmd $result
         end
     end
 
-    # Mount working directory or git root if not already covered (uses helper function)
+    # Mount working directory or git root if not already covered, and resolve
+    # the container-side workdir to pass to -w (uses helper function)
+    set -l CONTAINER_WORK_DIR $WORK_DIR
     for item in (__container_mount_workdir $WORK_DIR $explicit_mounts)
-        set -a cmd $item
+        if string match -q "CONTAINER_WORKDIR:*" $item
+            set CONTAINER_WORK_DIR (string sub -s 19 $item)
+        else
+            set -a cmd $item
+        end
     end
 
     # ========================================
@@ -361,7 +377,7 @@ function __container_launcher --description "Generic container launcher with com
     __container_print_verbose ""
 
     # Build the final command (adds image, working directory, and entrypoint command)
-    for item in (__container_build_command $IMAGE $WORK_DIR $TOOL_CMD $remaining_args)
+    for item in (__container_build_command $IMAGE $CONTAINER_WORK_DIR $TOOL_CMD $remaining_args)
         set -a cmd $item
     end
 
