@@ -121,7 +121,7 @@ function __container_build_command --description "Build the final container comm
             __container_print_verbose "  🚀 Running: $tool_cmd $remaining_args"
         end
     else
-        # Default behavior depends on the tool
+        # Default behaviour depends on the tool
         echo $tool_cmd
         if test "$tool_cmd" = "goose"
             echo "session"
