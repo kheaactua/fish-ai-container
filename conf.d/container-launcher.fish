@@ -313,8 +313,11 @@ function __container_launcher --description "Generic container launcher with com
         $HOME/.config/wireshark:$CONTAINER_HOME/.config/wireshark \
 
     # Add work-specific mounts (both files and directories) if function exists
+    # Pass CONTAINER_HOME explicitly rather than relying on fish's dynamic
+    # scoping, so container-work-mounts also behaves correctly when run
+    # standalone (outside __container_launcher) for manual testing.
     if type -q container-work-mounts
-        for mount in (container-work-mounts)
+        for mount in (container-work-mounts $CONTAINER_HOME)
             set -a conditional_dir_mounts $mount
         end
     end
