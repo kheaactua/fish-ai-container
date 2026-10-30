@@ -146,6 +146,39 @@ function my-tool-container --description "Run my-tool in container"
 end
 ```
 
+### Target access (QNX and AOSP)
+
+The AI base image includes `adb`, `picocom`, and `audit2allow` (from `policycoreutils-python-utils`). Rebuild the base and your agent image to get these tools; existing containers do not gain them automatically. Network ADB uses the launcher's existing host networking and needs no USB passthrough:
+
+```fish
+adb connect 10.1.0.10:5555
+adb -s 10.1.0.10:5555 shell
+```
+
+The launcher automatically passes `/dev/ttyUSB1` into new containers when it exists. If absent, it prints a notice and starts without serial access. Confirm that this is the target console before opening it:
+
+```fish
+copilot-container
+# Inside the container:
+picocom -b 115200 /dev/ttyUSB1
+```
+
+To override the default, set `CONTAINER_SERIAL_DEVICE` to another device or a confirmed `/dev/serial/by-id/` path before launching. An invalid explicit override stops launch rather than silently selecting another device. Podman resolves the host symlink and exposes the device at the supplied path inside the container. Relaunch after unplugging/replugging a device that changes its device number.
+
+The launcher checks host read/write access, passes only the selected device with `--device`, and uses `--group-add keep-groups` to retain host supplemental-group access. For serial-enabled containers it explicitly selects `--runtime crun`, even if Podman defaults to runc. Install **crun on the host** if unavailable; it is not a package needed inside the image. Without serial passthrough, the default runtime is unchanged. The host user must already have the device's actual group access (often `dialout`, `tty`, or `plugdev`); do not change permissions broadly or use a privileged container. A host security policy can still deny access and must be diagnosed separately.
+
+After updating the launcher, source `conf.d/container-launcher.fish` in the host fish shell and start a new container. Existing containers retain their original settings. Diagnose the affected container with `podman inspect --format '{{json .HostConfig.GroupAdd}} {{json .HostConfig.Devices}}' CONTAINER_NAME`: empty arrays mean it was launched without these serial options. Device ownership shown as `65534:65534` inside a rootless container can be normal; do not change ownership to fix unmapped IDs.
+
+Only one process can own the serial console, across host and container. This setting does not claim the device or evict an existing session. Leave picocom locking enabled. To stop passing serial devices into new containers:
+
+```fish
+set -gx CONTAINER_SERIAL_DEVICE none
+```
+
+Use `set -e CONTAINER_SERIAL_DEVICE` to restore automatic `/dev/ttyUSB1` selection.
+
+SSH mounts and agent forwarding are unchanged. These options do not expose USB ADB devices, install `tat-cli`, or control the target.
+
 ### Debugging
 
 Enable verbose output to see what's happening:

@@ -200,6 +200,34 @@ function __container_launcher --description "Generic container launcher with com
     # Base command array - easier to read and modify
     set -l cmd podman run -it --rm
 
+    set -l serial_device
+    if set -q CONTAINER_SERIAL_DEVICE
+        if test (count $CONTAINER_SERIAL_DEVICE) -ne 1
+            echo "Error: CONTAINER_SERIAL_DEVICE must name one character device or 'none'" >&2
+            return 1
+        end
+        if test "$CONTAINER_SERIAL_DEVICE" != none
+            set serial_device "$CONTAINER_SERIAL_DEVICE"
+        end
+    else if test -c /dev/ttyUSB1
+        set serial_device /dev/ttyUSB1
+    else
+        echo "Notice: /dev/ttyUSB1 is unavailable; starting without serial passthrough." >&2
+    end
+
+    if test (count $serial_device) -gt 0
+        if not test -c "$serial_device"
+            echo "Error: Serial device is missing or not a character device: $serial_device" >&2
+            return 1
+        end
+        if not test -r "$serial_device"; or not test -w "$serial_device"
+            echo "Error: Serial device requires host read/write access: $serial_device" >&2
+            return 1
+        end
+        # keep-groups preserves host device-group access in rootless Podman (crun).
+        set -a cmd --runtime crun --device "$serial_device" --group-add keep-groups
+    end
+
     # Container name (makes it easier to identify in podman ps)
     set -l container_name "$TOOL_CMD-podman-"(date +%H%M%S)
     set -a cmd --name $container_name
@@ -311,9 +339,13 @@ function __container_launcher --description "Generic container launcher with com
     end
 
     # Define directory mounts that should always be mounted (format: host:container)
+    # NOTE: $HOME/tmp is mirrored at an identical path (not under $CONTAINER_HOME)
+    # since it's a general-purpose cross-host/container scratch space, not
+    # something referenced via a `~`-relative path inside another mounted
+    # dotfile - mirroring keeps paths copy-pasteable between host and container.
     set -l always_dir_mounts \
         /etc/localtime:/etc/localtime:ro \
-        $HOME/tmp:$CONTAINER_HOME/tmp
+        $HOME/tmp:$HOME/tmp
 
     # Define conditional directory mounts (format: host:container)
     set -l conditional_dir_mounts \
@@ -388,7 +420,7 @@ function __container_launcher --description "Generic container launcher with com
     __container_print_verbose "Full command:"
     __container_print_verbose "  $cmd"
     __container_print_verbose ""
-    eval $cmd
+    command $cmd
 end
 
 # ========================================
