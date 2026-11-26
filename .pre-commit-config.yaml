@@ -1,0 +1,73 @@
+# Pre-commit hooks for fish-ai-container
+# Install: pip install pre-commit && pre-commit install
+# (installs both the pre-commit and commit-msg hooks)
+
+default_install_hook_types: [pre-commit, commit-msg]
+
+repos:
+  # Public repo guard: no employer-specific content, hosts, or author emails.
+  # Patterns come from the gitignored .banned-patterns (see .banned-patterns.example)
+  # or the file named by $BANNED_PATTERNS_FILE.
+  - repo: local
+    hooks:
+      - id: banned-content
+        name: Block private/employer-specific content
+        entry: .pre-commit-hooks/check-banned-content.sh files
+        language: script
+      - id: banned-author
+        name: Block private author/committer identity
+        entry: .pre-commit-hooks/check-banned-content.sh author
+        language: script
+        always_run: true
+        pass_filenames: false
+      - id: banned-commit-message
+        name: Block private content in commit message
+        entry: .pre-commit-hooks/check-banned-content.sh message
+        language: script
+        stages: [commit-msg]
+
+  # Fish shell syntax checking
+  - repo: local
+    hooks:
+      - id: fish-syntax-check
+        name: Fish syntax check
+        entry: fish --no-execute
+        language: system
+        files: \.fish$
+
+  # General file hygiene
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+        args: ['--maxkb=500']
+      - id: check-merge-conflict
+      - id: check-executables-have-shebangs
+      - id: mixed-line-ending
+        args: ['--fix=lf']
+
+  # Markdown linting
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.39.0
+    hooks:
+      - id: markdownlint
+        args: ['--disable', 'MD013', 'MD033', 'MD041']
+        # MD013: line length (too strict)
+        # MD033: inline HTML (we use it intentionally)
+        # MD041: first line heading (not always needed)
+
+  # Security checks
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.2
+    hooks:
+      - id: gitleaks
+
+  # Secret detection
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args: ['--baseline', '.secrets.baseline']

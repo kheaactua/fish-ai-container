@@ -1,0 +1,37 @@
+name: banned-content
+
+# Scans all commits on all refs for private/employer-specific content.
+# Patterns come from the BANNED_PATTERNS repository secret (one regex per line);
+# they are never stored in the repo. Output is SHAs only, so logs reveal nothing.
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    # Secrets are unavailable to PRs from forks
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Scan history
+        env:
+          BANNED_PATTERNS: ${{ secrets.BANNED_PATTERNS }}
+        run: |
+          if [ -z "$BANNED_PATTERNS" ]; then
+            echo "::error::BANNED_PATTERNS secret is not set"
+            exit 1
+          fi
+          printf '%s\n' "$BANNED_PATTERNS" > "$RUNNER_TEMP/banned-patterns"
+          BANNED_PATTERNS_FILE="$RUNNER_TEMP/banned-patterns" \
+            .pre-commit-hooks/check-banned-content.sh history
